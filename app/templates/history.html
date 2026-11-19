@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}History · MyFatnessPal{% endblock %}
+{% block content %}
+<h1 style="margin:8px 4px 0;font-size:26px;font-weight:800;letter-spacing:-0.02em">History</h1>
+
+<section class="card pad" style="display:flex;flex-direction:column;gap:16px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <div class="small muted" style="font-weight:500">Daily average</div>
+      <div class="big" style="font-size:34px;font-weight:800;line-height:1.1">{{ average|num }} <span class="small muted" style="font-weight:500">kcal</span></div>
+    </div>
+    <div class="small muted" style="text-align:right">Goal {{ goal|num }}<br>{{ logged_days }} logged day{{ "" if logged_days == 1 else "s" }}, excl. today</div>
+  </div>
+  <figure class="chart" role="img" aria-label="Calories for the last 7 days against your goal" style="margin:0">
+    <div class="goal" style="bottom: calc(22px + (100% - 22px) * {{ goal_line / 100 }})"></div>
+    <div class="bars">
+      {% for x in days %}<div class="{{ 'now' if x.is_today else ('over' if x.over else '') }}" style="height: {{ x.height }}%" title="{{ x.kcal|num }} kcal"></div>{% endfor %}
+    </div>
+    <div class="labels">{% for x in days %}<div>{{ x.day.strftime("%a") }}</div>{% endfor %}</div>
+  </figure>
+  <div class="small muted" style="display:flex;gap:14px;flex-wrap:wrap">
+    <span><span class="dot" style="--c: var(--accent)"></span> Under goal</span>
+    <span><span class="dot" style="--c: var(--over)"></span> Over goal</span>
+    <span><span class="dot" style="--c: transparent;border:2px dashed var(--accent);width:10px;height:10px"></span> Today so far</span>
+  </div>
+</section>
+
+<div class="card list">
+  {% for x in days|reverse %}
+  <a class="row" href="/today?d={{ x.day.isoformat() }}">
+    <div class="what">
+      <div class="name">{{ "Today" if x.is_today else x.day.strftime("%A %-d") }}</div>
+      <div class="small muted">
+        {% if x.is_today %}In progress{% elif x.kcal == 0 %}Nothing logged{% elif x.over %}{{ (x.kcal - x.goal)|num }} over{% else %}{{ (x.goal - x.kcal)|num }} under{% endif %}
+      </div>
+    </div>
+    <div style="font-weight:600">{{ x.kcal|num }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

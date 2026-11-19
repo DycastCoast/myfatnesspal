@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Create a food · MyFatnessPal{% endblock %}
+{% block content %}
+<div class="topbar" style="justify-content:flex-start">
+  <a class="icon-btn" href="/add?meal_id={{ meal_id }}&d={{ day.isoformat() }}" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+  <h1>Create a food</h1>
+</div>
+
+{% if form.barcode and not error %}<div class="alert">We couldn't find barcode {{ form.barcode }}. Add it from the packet and everyone can use it.</div>{% endif %}
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+
+<form method="post" action="/food/new" style="display:flex;flex-direction:column;gap:16px">
+  <input type="hidden" name="meal_id" value="{{ meal_id }}">
+  <input type="hidden" name="d" value="{{ day.isoformat() }}">
+  <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+    <label class="field">Name<input type="text" name="name" value="{{ form.name or '' }}" required maxlength="120"></label>
+    <div class="grid2">
+      <label class="field">Brand (optional)<input type="text" name="brand" value="{{ form.brand or '' }}" maxlength="80"></label>
+      <label class="field">Barcode (optional)<input type="text" name="barcode" inputmode="numeric" value="{{ form.barcode or '' }}"></label>
+    </div>
+  </div>
+
+  <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+    <div style="font-weight:700">Per 100 g <span class="small muted" style="font-weight:400">(leave blank if it's not on the label)</span></div>
+    <label class="field">Calories (kcal)<input type="number" step="any" min="0" name="kcal_100g" value="{{ form.kcal_100g or '' }}" required></label>
+    <div class="grid2">
+      {% for key, label in [("protein_100g", "Protein (g)"), ("carbs_100g", "Carbs (g)"), ("fat_100g", "Fat (g)"),
+                            ("sugar_100g", "of which sugars (g)"), ("fibre_100g", "Fibre (g)"), ("salt_100g", "Salt (g)")] %}
+      <label class="field">{{ label }}<input type="number" step="any" min="0" name="{{ key }}" value="{{ form[key] or '' }}"></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+    <div style="font-weight:700">Portions <span class="small muted" style="font-weight:400">(optional)</span></div>
+    <label class="field">One serving is (g)<input type="number" step="any" min="0" name="serving_g" value="{{ form.serving_g or '' }}"></label>
+    <div class="grid2">
+      <label class="field">Unit name<input type="text" name="unit_name" placeholder="e.g. slice" value="{{ form.unit_name or '' }}" maxlength="30"></label>
+      <label class="field">One unit is (g)<input type="number" step="any" min="0" name="unit_grams" value="{{ form.unit_grams or '' }}"></label>
+    </div>
+  </div>
+
+  <button class="btn" type="submit">Save food</button>
+</form>
+{% endblock %}

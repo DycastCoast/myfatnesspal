@@ -4,3 +4,5 @@ __pycache__/
 .git/
 .github/
 k8s/
+tests/
+.pytest_cache/

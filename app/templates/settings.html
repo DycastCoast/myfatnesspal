@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Settings · MyFatnessPal{% endblock %}
+{% block content %}
+<h1 style="margin:8px 4px 0;font-size:26px;font-weight:800;letter-spacing:-0.02em">Settings</h1>
+<p class="small muted" style="margin:0 4px">Signed in as {{ user.email }}</p>
+{% if saved %}<div class="alert" role="status" style="background: color-mix(in srgb, var(--accent) 16%, var(--card))">Saved.</div>{% endif %}
+
+<form method="post" action="/settings" style="display:flex;flex-direction:column;gap:16px">
+  <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+    <div style="font-weight:700">Daily goal</div>
+    <label class="field">Calories (kcal)<input type="number" name="kcal" min="500" max="10000" value="{{ goal.kcal }}" required></label>
+    <div class="grid2" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+      <label class="field">Protein (g)<input type="number" name="protein_g" min="0" value="{{ goal.protein_g or '' }}"></label>
+      <label class="field">Carbs (g)<input type="number" name="carbs_g" min="0" value="{{ goal.carbs_g or '' }}"></label>
+      <label class="field">Fat (g)<input type="number" name="fat_g" min="0" value="{{ goal.fat_g or '' }}"></label>
+    </div>
+    <p class="small muted" style="margin:0">Changing your goal starts from today. Past days keep the goal they had.</p>
+  </div>
+
+  <fieldset class="card pad" style="margin:0;display:flex;flex-direction:column;gap:12px">
+    <legend class="sr-only">Appearance</legend>
+    <div style="font-weight:700">Appearance</div>
+    <div class="seg">
+      {% for value, label in [("system", "Match phone"), ("light", "Light"), ("dark", "Dark")] %}
+      <label><input type="radio" name="theme" value="{{ value }}"{% if user.theme == value %} checked{% endif %}><span>{{ label }}</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <button class="btn" type="submit">Save</button>
+</form>
+{% endblock %}

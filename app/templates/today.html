@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} · MyFatnessPal{% endblock %}
+{% block content %}
+{% set d = day.isoformat() %}
+<div class="topbar">
+  <a class="icon-btn" href="/today?d={{ prev.isoformat() }}" aria-label="Previous day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+  <div style="text-align:center">
+    <h1>{{ label }}</h1>
+    <div class="small muted">{{ day.strftime("%A %-d %B") }}</div>
+  </div>
+  <a class="icon-btn" href="/today?d={{ next.isoformat() }}" aria-label="Next day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></a>
+</div>
+
+{% set over = s.remaining < 0 %}
+<section class="hero" aria-label="Calories">
+  <div class="ring">
+    <svg width="132" height="132" viewBox="0 0 132 132" role="img" aria-label="{{ s.eaten|num }} of {{ s.goal|num }} kcal eaten">
+      <circle cx="66" cy="66" r="54" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="12"/>
+      <circle cx="66" cy="66" r="54" fill="none" stroke="{{ '#FFD27A' if over else '#FFFFFF' }}" stroke-width="12" stroke-linecap="round"
+              stroke-dasharray="{{ '%.1f'|format(s.fraction * 339.3) }} 340" transform="rotate(-90 66 66)"/>
+    </svg>
+    <div class="centre">
+      <div class="big">{{ (s.remaining|abs)|num }}</div>
+      <div class="small" style="font-weight:600">{{ "kcal over" if over else "kcal left" }}</div>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div><div class="label">Goal</div><div class="value">{{ s.goal|num }}</div></div>
+    <hr>
+    <div><div class="label">Eaten</div><div class="value">{{ s.eaten|num }}{% if s.unknown_kcal %}<span class="small">*</span>{% endif %}</div></div>
+  </div>
+</section>
+{% if s.unknown_kcal %}<p class="small muted" style="margin:-6px 4px 0">* Some foods have unknown calories, so the real total is higher.</p>{% endif %}
+
+<section class="card pad macros" aria-label="Macros">
+  {% for m in s.macros %}
+  <div class="macro c-{{ m.key }}">
+    <div class="name"><span class="dot"></span>{{ m.label }}</div>
+    <div style="font-weight:600">{{ m.total }}{% if m.goal %}<span class="muted" style="font-weight:400"> / {{ m.goal }} g</span>{% else %}<span class="muted" style="font-weight:400"> g</span>{% endif %}</div>
+    {% if m.pct is not none %}<div class="bar"><span style="width: {{ m.pct }}%"></span></div>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+
+{% for block in s.meals %}
+{% set meal = block.meal %}
+<section class="card pad meal-card m-{{ meal.colour }}" aria-labelledby="meal-{{ meal.id }}">
+  <div class="meal-head">
+    <div class="meal-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ meal_icons.get(meal.colour, meal_icons.accent) }}"/></svg></div>
+    <h2 id="meal-{{ meal.id }}">{{ meal.name }}</h2>
+    <div style="font-weight:600">{{ block.kcal|num }} <span class="muted" style="font-weight:400">kcal</span></div>
+  </div>
+  {% if block.entries %}
+  <div style="margin-top:10px">
+    {% for e in block.entries %}
+    <div class="entry">
+      <div class="what">
+        <div>{{ e.food_name }}</div>
+        <div class="small muted">{{ e.grams|dec }} g</div>
+      </div>
+      <div>{{ e.kcal|num }}</div>
+      <form method="post" action="/log/{{ e.id }}/delete">
+        <button class="del" type="submit" aria-label="Remove {{ e.food_name }}">×</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="small muted" style="margin:10px 0 0">Nothing logged yet</p>
+  {% endif %}
+  <a class="add-link" href="/add?meal_id={{ meal.id }}&d={{ d }}">+ Add food</a>
+</section>
+{% endfor %}
+{% endblock %}

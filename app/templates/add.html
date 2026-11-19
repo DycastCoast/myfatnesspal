@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Add food · MyFatnessPal{% endblock %}
+{% block content %}
+<div class="topbar" style="justify-content:flex-start">
+  <a class="icon-btn" href="/today?d={{ day.isoformat() }}" aria-label="Back to diary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+  <div>
+    <div class="small muted" style="font-weight:500">Adding to</div>
+    <h1>{{ meal.name }}</h1>
+  </div>
+</div>
+
+{% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+
+<form method="get" action="/add" role="search">
+  <input type="hidden" name="meal_id" value="{{ meal.id }}">
+  <input type="hidden" name="d" value="{{ day.isoformat() }}">
+  <label class="sr-only" for="q">Search foods</label>
+  <input id="q" type="search" name="q" value="{{ q }}" placeholder="Search foods, e.g. banana" autocomplete="off">
+</form>
+
+<button class="btn" type="button" id="scan-btn">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14M7 5v14M10 5v14M14 5v14M17 5v14M21 5v14"/></svg>Scan barcode
+</button>
+
+<div id="scanner" class="card pad">
+  <video id="scan-video" playsinline muted></video>
+  <p class="small muted" id="scan-msg" style="margin:0">Point the camera at a barcode.</p>
+</div>
+
+<form method="get" action="/barcode" class="card pad" style="display:flex;gap:8px;align-items:flex-end" id="barcode-form">
+  <input type="hidden" name="meal_id" value="{{ meal.id }}">
+  <input type="hidden" name="d" value="{{ day.isoformat() }}">
+  <label class="field" style="flex:1">Or type the barcode
+    <input id="code" type="text" name="code" inputmode="numeric" pattern="[0-9]{6,14}" placeholder="e.g. 3017620422003" required>
+  </label>
+  <button class="btn dark" type="submit" style="width:auto;padding:0 18px;height:48px">Look up</button>
+</form>
+
+{% if results is not none %}
+<h2 style="margin:4px 4px 0;font-size:17px">Results for “{{ q }}”</h2>
+{% if results %}
+<div class="card list">{% for f in results %}{% include "_food_row.html" %}{% endfor %}</div>
+{% else %}
+<p class="muted" style="margin:0 4px">Nothing yet. Scan it, or create it below.</p>
+{% endif %}
+{% elif recent %}
+<h2 style="margin:4px 4px 0;font-size:17px">Recent</h2>
+<div class="card list">{% for f in recent %}{% include "_food_row.html" %}{% endfor %}</div>
+{% endif %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;padding:0 4px">
+  <span class="muted">Can't find it?</span>
+  <a href="/food/new?meal_id={{ meal.id }}&d={{ day.isoformat() }}" style="font-weight:600;text-decoration:none;padding:10px 0">Create a food</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Camera scanning uses the browser's built-in BarcodeDetector where it exists
+// (Chrome on Android). iPhone Safari doesn't have it yet, so there we fall back
+// to typing the number. A scanning library for iPhone comes in Phase 3.
+(function () {
+  const btn = document.getElementById('scan-btn');
+  const box = document.getElementById('scanner');
+  const video = document.getElementById('scan-video');
+  const msg = document.getElementById('scan-msg');
+  const codeInput = document.getElementById('code');
+  btn.addEventListener('click', async function () {
+    if (!('BarcodeDetector' in window) || !navigator.mediaDevices) {
+      codeInput.focus();
+      codeInput.placeholder = 'Scanning not supported here yet: type the number';
+      return;
+    }
+    box.classList.add('on');
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    } catch (e) {
+      msg.textContent = 'Camera blocked. Allow camera access, or type the number below.';
+      return;
+    }
+    video.srcObject = stream;
+    await video.play();
+    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    const tick = async function () {
+      try {
+        const found = await detector.detect(video);
+        if (found.length) {
+          stream.getTracks().forEach(function (t) { t.stop(); });
+          codeInput.value = found[0].rawValue;
+          msg.textContent = 'Found ' + found[0].rawValue + '…';
+          document.getElementById('barcode-form').submit();
+          return;
+        }
+      } catch (e) { /* keep trying */ }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
+})();
+</script>
+{% endblock %}

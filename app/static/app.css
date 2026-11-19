@@ -1,0 +1,183 @@
+/* MyFatnessPal — matches the signed-off design canvas.
+   Theme = CSS variables. Light by default, dark follows the phone unless overridden. */
+
+:root {
+  --bg: #F3F5F1; --card: #FFFFFF; --ink: #16181D; --muted: #5B616B; --line: #EEF0EC;
+  --track: #E6E9E4; --seg: #E6E9E3; --seg-on: #FFFFFF; --field-line: #D5D9D2;
+  --accent: #2E7D57; --accent-rgb: 46, 125, 87; --link: #2E7D57; --on-accent: #FFFFFF;
+  --shade: rgba(22, 24, 29, 0.08);
+  --breakfast: #C98414; --breakfast-solid: #96600A; --lunch: #0B7A7C; --dinner: #4E5FD6; --snacks: #C2457A;
+  --protein: #3E7BE6; --carbs: #E3A02F; --fat: #D9578A; --over: #E0802F;
+  --chip-off-bg: #E4EAF6; --chip-off-fg: #24407A; --chip-uk-bg: #DDF1F1; --chip-uk-fg: #0B5557;
+  --chip-custom-bg: #EFE6F8; --chip-custom-fg: #5A2A91;
+  color-scheme: light;
+}
+
+/* Dark values live in one place and are applied two ways (system setting, or forced). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1214; --card: #1A1F22; --ink: #EEF1EC; --muted: #A3AAA4; --line: #2A3134;
+    --track: #2C3437; --seg: #22282B; --seg-on: #363F43; --field-line: #3A4245;
+    --accent: #6E5BE8; --accent-rgb: 160, 148, 255; --link: #B3A8FF; --shade: rgba(0, 0, 0, 0.45);
+    --chip-off-bg: #22304A; --chip-off-fg: #B9CBF2; --chip-uk-bg: #123030; --chip-uk-fg: #9FDCDD;
+    --chip-custom-bg: #34254A; --chip-custom-fg: #D5BDF2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1214; --card: #1A1F22; --ink: #EEF1EC; --muted: #A3AAA4; --line: #2A3134;
+  --track: #2C3437; --seg: #22282B; --seg-on: #363F43; --field-line: #3A4245;
+  --accent: #6E5BE8; --accent-rgb: 160, 148, 255; --link: #B3A8FF; --shade: rgba(0, 0, 0, 0.45);
+  --chip-off-bg: #22304A; --chip-off-fg: #B9CBF2; --chip-uk-bg: #123030; --chip-uk-fg: #9FDCDD;
+  --chip-custom-bg: #34254A; --chip-custom-fg: #D5BDF2;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--link); }
+h1, h2, .big { letter-spacing: -0.02em; }
+.page { max-width: 480px; margin: 0 auto; padding: 20px 16px 120px; display: flex; flex-direction: column; gap: 16px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Cards: tinted rim + soft coloured halo + shadow */
+.card {
+  background: var(--card); border-radius: 20px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.09), 0 0 0 7px rgba(var(--accent-rgb), 0.04), 0 10px 26px var(--shade);
+}
+.card.pad { padding: 16px; }
+.meal-card {
+  --m: var(--accent);
+  border-color: color-mix(in srgb, var(--m) 30%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m) 10%, transparent),
+              0 0 0 7px color-mix(in srgb, var(--m) 4%, transparent), 0 10px 26px var(--shade);
+}
+.m-breakfast { --m: var(--breakfast); } .m-lunch { --m: var(--lunch); }
+.m-dinner { --m: var(--dinner); } .m-snacks { --m: var(--snacks); }
+
+/* Header */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.topbar h1 { margin: 0; font-size: 22px; font-weight: 700; }
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink); background: var(--card); text-decoration: none; border: 1px solid rgba(var(--accent-rgb), 0.22);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.09), 0 4px 12px var(--shade); cursor: pointer;
+}
+.icon-btn svg, .nav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Hero */
+.hero { background: var(--accent); color: var(--on-accent); border-radius: 24px; padding: 20px; display: flex; align-items: center; gap: 20px;
+  box-shadow: 0 10px 28px rgba(var(--accent-rgb), 0.3); }
+.ring { position: relative; width: 132px; height: 132px; flex-shrink: 0; }
+.ring svg { display: block; }
+.ring .centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring .big { font-size: 30px; font-weight: 800; line-height: 1; }
+.hero-stats { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.hero-stats .label { font-size: 12px; font-weight: 500; }
+.hero-stats .value { font-size: 20px; font-weight: 700; }
+.hero-stats hr { border: 0; height: 1px; background: rgba(255, 255, 255, 0.25); margin: 0; }
+
+/* Macros */
+.macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.macro .name { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.dot { width: 8px; height: 8px; border-radius: 999px; background: var(--c); display: inline-block; }
+.bar { height: 6px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+.bar > span { display: block; height: 100%; background: var(--c); border-radius: 999px; }
+.c-protein { --c: var(--protein); } .c-carbs { --c: var(--carbs); } .c-fat { --c: var(--fat); }
+
+/* Meals */
+.meal-head { display: flex; align-items: center; gap: 12px; }
+.meal-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--m) 14%, var(--card)); color: var(--m); }
+.meal-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.meal-head h2 { margin: 0; flex: 1; font-size: 17px; font-weight: 700; }
+.entry { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.entry .what { flex: 1; min-width: 0; }
+.entry form { margin: 0; }
+.del { width: 32px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; }
+.del:hover { background: var(--seg); color: var(--ink); }
+.add-link { display: inline-block; font-weight: 600; text-decoration: none; padding: 10px 0 2px; }
+
+/* Forms */
+input[type=search], input[type=text], input[type=number], select {
+  width: 100%; height: 48px; border: 1px solid var(--field-line); border-radius: 14px; background: var(--card);
+  color: var(--ink); padding: 0 14px; font: inherit; font-size: 16px; /* 16px stops iPhone zooming in */
+}
+label.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.btn {
+  height: 52px; border: 0; border-radius: 16px; background: var(--accent); color: var(--on-accent);
+  font: inherit; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px;
+  text-decoration: none; cursor: pointer; width: 100%;
+}
+.btn.dark { background: var(--ink); color: var(--bg); }
+.btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.seg { display: flex; gap: 4px; background: var(--seg); border-radius: 12px; padding: 4px; flex-wrap: wrap; }
+.seg label { flex: 1 1 0; min-width: 72px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: flex; height: 40px; align-items: center; justify-content: center; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; padding: 0 8px; text-align: center; }
+.seg input:checked + span { background: var(--seg-on); color: var(--ink); box-shadow: 0 1px 3px var(--shade); }
+.seg input:focus-visible + span { outline: 2px solid var(--link); }
+.meal-pick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.meal-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.meal-pick span { display: flex; height: 44px; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--field-line);
+  background: var(--card); font-size: 13px; font-weight: 600; cursor: pointer; }
+.meal-pick input:checked + span { background: var(--m-solid, var(--m)); border-color: var(--m-solid, var(--m)); color: #FFFFFF; }
+.meal-pick .m-breakfast { --m-solid: var(--breakfast-solid); }
+.meal-pick input:focus-visible + span { outline: 2px solid var(--link); outline-offset: 2px; }
+.alert { border-radius: 14px; padding: 12px 14px; font-size: 14px; background: color-mix(in srgb, var(--over) 18%, var(--card)); }
+
+/* Food lists */
+.list { padding: 0; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); min-height: 56px; }
+.row:last-child { border-bottom: 0; }
+.tile { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+.row .what { flex: 1; min-width: 0; }
+.row .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; display: inline-block; }
+.s-off { background: var(--chip-off-bg); color: var(--chip-off-fg); }
+.s-cofid, .s-usda { background: var(--chip-uk-bg); color: var(--chip-uk-fg); }
+.s-custom { background: var(--chip-custom-bg); color: var(--chip-custom-fg); }
+
+/* Food detail */
+.kcal-card { background: var(--accent); color: var(--on-accent); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 10px 28px rgba(var(--accent-rgb), 0.3); }
+.kcal-card .big { font-size: 44px; font-weight: 800; line-height: 1; }
+.split { display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 2px; background: rgba(255, 255, 255, 0.2); }
+.split span:nth-child(1) { background: #9DC1FF; } .split span:nth-child(2) { background: #FFD27A; } .split span:nth-child(3) { background: #FFB3CF; }
+.nutri { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.nutri .unknown { color: var(--muted); font-style: italic; }
+details summary { font-weight: 600; padding: 12px 0; cursor: pointer; }
+
+/* History */
+.chart { position: relative; height: 200px; }
+.chart .goal { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--muted); opacity: 0.7; }
+.bars { position: absolute; inset: 0 0 22px 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.bars > div { background: var(--accent); border-radius: 6px 6px 2px 2px; min-height: 2px; }
+.bars > div.over { background: var(--over); }
+.bars > div.now { background: transparent; border: 2px dashed var(--accent); }
+.labels { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px;
+  font-size: 12px; color: var(--muted); text-align: center; }
+
+/* Bottom nav */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
+.nav .inner { max-width: 480px; margin: 0 auto; height: 72px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; }
+.nav a { display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: var(--muted); font-size: 12px; font-weight: 500; }
+.nav a[aria-current=page] { color: var(--ink); font-weight: 700; }
+.nav a.plus { justify-self: center; width: 56px; height: 56px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+  justify-content: center; box-shadow: 0 8px 20px rgba(var(--accent-rgb), 0.35); }
+.nav a.plus svg { width: 26px; height: 26px; stroke-width: 2.4; }
+
+/* Scanner */
+#scanner { display: none; flex-direction: column; gap: 10px; }
+#scanner.on { display: flex; }
+#scanner video { width: 100%; border-radius: 16px; background: #000; aspect-ratio: 4 / 3; object-fit: cover; }

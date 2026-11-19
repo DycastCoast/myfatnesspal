@@ -1,4 +1,5 @@
 data/
 __pycache__/
 .venv/
-k8s/cloudflare.yaml
+.pytest_cache/
+k8s/cloudflare*.yaml

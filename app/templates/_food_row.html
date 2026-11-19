@@ -1,0 +1,19 @@
+{# One food in a list. Needs: f (Food), meal, day #}
+{% set kcal_serving = (f.kcal_100g * f.serving_g / 100) if (f.kcal_100g is not none and f.serving_g) else none %}
+<a class="row" href="/food/{{ f.id }}?meal_id={{ meal.id }}&d={{ day.isoformat() }}">
+  <div class="tile s-{{ f.source }}">{{ f.name[:1]|upper }}</div>
+  <div class="what">
+    <div class="name">{{ f.name }}</div>
+    <div class="small muted">
+      {% if f.brand %}{{ f.brand }} · {% endif %}
+      <span class="chip s-{{ f.source }}">{{ {"off": "Barcode", "cofid": "UK", "usda": "US", "custom": "Friend"}.get(f.source, f.source) }}</span>
+    </div>
+  </div>
+  <div style="text-align:right">
+    {% if kcal_serving is not none %}
+    <div style="font-weight:600">{{ kcal_serving|num }}</div><div class="small muted">per {{ f.serving_g|dec }} g</div>
+    {% else %}
+    <div style="font-weight:600">{{ f.kcal_100g|num }}</div><div class="small muted">per 100 g</div>
+    {% endif %}
+  </div>
+</a>
