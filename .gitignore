@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 .pytest_cache/
 k8s/cloudflare*.yaml
+
+# Pi deployment (deploy/pi)
+deploy/pi/.env
+deploy/pi/data/
+deploy/pi/backups/

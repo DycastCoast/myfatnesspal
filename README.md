@@ -1,7 +1,8 @@
 # MyFatnessPal
 
 A calorie counter for me and my friends. FastAPI + SQLite, server-rendered pages,
-installable on phones. Runs on Scott's montlab cluster at https://dycast-myfatnesspal.montlab.cc.
+installable on phones. Runs privately on my Raspberry Pi over Tailscale: see [deploy/pi/PI.md](deploy/pi/PI.md).
+(It used to run on Scott's montlab cluster; `k8s/` is kept in case it ever goes back.)
 
 ## Run it on your laptop
 
@@ -40,7 +41,11 @@ Note: re-applying `k8s/app.yaml` sets the image back to `:latest`. Run the `set 
 
 ## Login
 
-Cloudflare Access, configured by `k8s/cloudflare.yaml` (git-ignored: it lists people's emails).
+`AUTH_MODE` picks who vouches for the user (see `app/auth.py`):
+
+- `tailscale` (the Pi): `tailscale serve` sends your Tailscale login. `ALLOWED_LOGINS` limits who gets in,
+  and `ACCOUNT_EMAIL` makes every allowed login use your one diary.
+- `cloudflare` (default, montlab): Cloudflare Access, configured by `k8s/cloudflare.yaml` (git-ignored: it lists people's emails).
 To let a friend in, add their email to the `include` list and `kubectl apply -n dycast -f k8s\cloudflare.yaml`.
 
 ## Backups

@@ -132,3 +132,32 @@ def test_fails_closed_without_login(client, monkeypatch):
     assert client.get("/backup", headers=friend).status_code == 403  # not the admin
     toast = client.get("/api/foods/search", params={"q": "toast"}, headers=friend).json()[0]
     assert client.get(f"/food/{toast['id']}/edit", headers=friend).status_code == 403  # not their food
+
+
+def test_tailscale_login(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "dev_mode", False)
+    monkeypatch.setattr(settings, "auth_mode", "tailscale")
+    me = {"Tailscale-User-Login": "Me@Example.com"}
+    assert client.get("/today", headers=me).status_code == 200
+    # A Cloudflare header means nothing on the Pi
+    assert client.get("/today", headers={"Cf-Access-Authenticated-User-Email": "me@example.com"}).status_code == 401
+
+
+def test_allowed_logins_and_single_account(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "dev_mode", False)
+    monkeypatch.setattr(settings, "auth_mode", "tailscale")
+    monkeypatch.setattr(settings, "allowed_logins", {"dycastcoast@github"})
+    monkeypatch.setattr(settings, "account_email", "me@example.com")
+    assert client.get("/today", headers={"Tailscale-User-Login": "someone@else.com"}).status_code == 403
+    assert client.get("/today", headers={"Tailscale-User-Login": "DycastCoast@github"}).status_code == 200
+
+    from sqlmodel import Session, select
+    from app.db import engine
+    from app.models import User
+    with Session(engine) as s:  # the github login used the existing email account, not a new one
+        emails = {u.email for u in s.exec(select(User)).all()}
+    assert "me@example.com" in emails and "dycastcoast@github" not in emails
