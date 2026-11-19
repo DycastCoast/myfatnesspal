@@ -181,3 +181,6 @@ details summary { font-weight: 600; padding: 12px 0; cursor: pointer; }
 #scanner { display: none; flex-direction: column; gap: 10px; }
 #scanner.on { display: flex; }
 #scanner video { width: 100%; border-radius: 16px; background: #000; aspect-ratio: 4 / 3; object-fit: cover; }
+#scan-reader { width: 100%; border-radius: 16px; overflow: hidden; background: #000; }
+#scan-reader video { border-radius: 16px; }
+[hidden] { display: none !important; }

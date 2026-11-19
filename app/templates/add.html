@@ -23,8 +23,10 @@
 </button>
 
 <div id="scanner" class="card pad">
-  <video id="scan-video" playsinline muted></video>
-  <p class="small muted" id="scan-msg" style="margin:0">Point the camera at a barcode.</p>
+  <video id="scan-video" playsinline muted hidden></video>
+  <div id="scan-reader" hidden></div>
+  <p class="small muted" id="scan-msg" style="margin:0" aria-live="polite">Starting camera…</p>
+  <button class="btn dark" type="button" id="scan-stop">Stop scanning</button>
 </div>
 
 <form method="get" action="/barcode" class="card pad" style="display:flex;gap:8px;align-items:flex-end" id="barcode-form">
@@ -55,48 +57,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-// Camera scanning uses the browser's built-in BarcodeDetector where it exists
-// (Chrome on Android). iPhone Safari doesn't have it yet, so there we fall back
-// to typing the number. A scanning library for iPhone comes in Phase 3.
-(function () {
-  const btn = document.getElementById('scan-btn');
-  const box = document.getElementById('scanner');
-  const video = document.getElementById('scan-video');
-  const msg = document.getElementById('scan-msg');
-  const codeInput = document.getElementById('code');
-  btn.addEventListener('click', async function () {
-    if (!('BarcodeDetector' in window) || !navigator.mediaDevices) {
-      codeInput.focus();
-      codeInput.placeholder = 'Scanning not supported here yet: type the number';
-      return;
-    }
-    box.classList.add('on');
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    } catch (e) {
-      msg.textContent = 'Camera blocked. Allow camera access, or type the number below.';
-      return;
-    }
-    video.srcObject = stream;
-    await video.play();
-    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-    const tick = async function () {
-      try {
-        const found = await detector.detect(video);
-        if (found.length) {
-          stream.getTracks().forEach(function (t) { t.stop(); });
-          codeInput.value = found[0].rawValue;
-          msg.textContent = 'Found ' + found[0].rawValue + '…';
-          document.getElementById('barcode-form').submit();
-          return;
-        }
-      } catch (e) { /* keep trying */ }
-      requestAnimationFrame(tick);
-    };
-    tick();
-  });
-})();
-</script>
+<script src="/static/scan.js" defer></script>
 {% endblock %}

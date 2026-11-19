@@ -145,7 +145,8 @@ def recent_foods(session: Session, user: User, limit=8):
     return [f for f in foods if f is not None and can_see(f, user)]
 
 
-def create_custom_food(session: Session, user: User, form: dict) -> Food:
+def _food_from_form(form: dict) -> dict:
+    """Validate the create/edit food form. Raises ValueError with a friendly message."""
     name = (form.get("name") or "").strip()
     kcal = nutrition.to_float(form.get("kcal_100g"))
     if not name:
@@ -165,17 +166,54 @@ def create_custom_food(session: Session, user: User, form: dict) -> Food:
     unit_grams = nutrition.to_float(form.get("unit_grams"))
     if unit_name and unit_grams:
         units.append({"name": unit_name, "grams": unit_grams})
-    return save_food(session, {
+    return {
         "name": name,
         "brand": (form.get("brand") or "").strip() or None,
         "barcode": barcode,
-        "source": "custom",
-        "created_by": user.id,
         "kcal_100g": kcal,
         **fields,
         "serving_g": serving_g,
         "units": units,
-    })
+    }
+
+
+def create_custom_food(session: Session, user: User, form: dict) -> Food:
+    data = _food_from_form(form)
+    return save_food(session, {**data, "source": "custom", "created_by": user.id})
+
+
+def can_edit(food: Food, user: User):
+    return food.source == "custom" and food.created_by == user.id
+
+
+def update_custom_food(session: Session, user: User, food: Food, form: dict, update_my_logs=False):
+    if not can_edit(food, user):
+        raise PermissionError("Only the person who created a food can edit it.")
+    data = _food_from_form(form)
+    units = data.pop("units")
+    for key, value in data.items():
+        setattr(food, key, value)
+    food.suspicious = False
+    session.add(food)
+    for old in units_for(session, food):
+        session.delete(old)
+    for unit in units:
+        session.add(FoodUnit(food_id=food.id, name=unit["name"], grams=unit["grams"]))
+    changed = 0
+    if update_my_logs:
+        # Only YOUR past entries are recalculated. Friends' history is never touched.
+        entries = session.exec(
+            select(LogEntry).where(LogEntry.user_id == user.id, LogEntry.food_id == food.id)
+        ).all()
+        for entry in entries:
+            for key, value in nutrition.scale(per_100g(food), entry.grams).items():
+                setattr(entry, key, value)
+            entry.food_name = food.name
+            session.add(entry)
+            changed += 1
+    session.commit()
+    session.refresh(food)
+    return changed
 
 
 # ---------- logging ----------

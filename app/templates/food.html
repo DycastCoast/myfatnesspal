@@ -3,7 +3,8 @@
 {% block content %}
 <div class="topbar" style="justify-content:flex-start">
   <a class="icon-btn" href="/add?meal_id={{ meal.id }}&d={{ day.isoformat() }}" aria-label="Back to search"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
-  <span class="muted">Add food</span>
+  <span class="muted" style="flex:1">Add food</span>
+  {% if can_edit %}<a href="/food/{{ food.id }}/edit?meal_id={{ meal.id }}&d={{ day.isoformat() }}" style="font-weight:600;text-decoration:none;padding:10px">Edit</a>{% endif %}
 </div>
 
 <div style="padding:0 4px">

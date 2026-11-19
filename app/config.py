@@ -16,6 +16,8 @@ class Settings:
         self.off_timeout = float(os.environ.get("OFF_TIMEOUT", "6"))
         self.contact = os.environ.get("CONTACT", "github.com/DycastCoast/myfatnesspal")
         self.default_goal_kcal = int(os.environ.get("DEFAULT_GOAL_KCAL", "2000"))
+        # Who may download a full backup. Empty = the first user ever created (you).
+        self.admin_emails = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 
 settings = Settings()

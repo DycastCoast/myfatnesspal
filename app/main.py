@@ -1,19 +1,24 @@
 """Routes: turn web requests into service calls, and results into pages or JSON."""
 
+import sqlite3
+import tempfile
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
+from starlette.background import BackgroundTask
 
 from app import nutrition, services
 from app.auth import get_current_user
-from app.db import get_session, init_db
+from app.config import settings
+from app.db import engine, get_session, init_db
 from app.models import Food, User
+from app.seed import seed_cofid
 from app.sources.openfoodfacts import SourceUnavailable, is_valid_barcode
 
 BASE = Path(__file__).parent
@@ -22,6 +27,8 @@ BASE = Path(__file__).parent
 @asynccontextmanager
 async def lifespan(_app):
     init_db()
+    with Session(engine) as session:
+        seed_cofid(session)  # no-op after the first run
     yield
 
 
@@ -125,7 +132,7 @@ async def barcode_lookup(code: str, meal_id: str | None = None, d: str | None = 
 def new_food_page(request: Request, barcode: str = "", meal_id: str | None = None, d: str | None = None,
                   user: User = CurrentUser, session: Session = DB):
     return render(request, "food_new.html", user, form={"barcode": barcode}, error=None,
-                  meal_id=as_int(meal_id) or "", day=parse_day(d), nav="add")
+                  meal_id=as_int(meal_id) or "", day=parse_day(d), editing=None, nav="add")
 
 
 @app.post("/food/new")
@@ -137,7 +144,45 @@ async def new_food_submit(request: Request, user: User = CurrentUser, session: S
         food = services.create_custom_food(session, user, form)
     except ValueError as exc:
         return render(request, "food_new.html", user, form=form, error=str(exc),
-                      meal_id=meal_id, day=day, nav="add")
+                      meal_id=meal_id, day=day, editing=None, nav="add")
+    return go(f"/food/{food.id}?meal_id={meal_id}&d={day.isoformat()}")
+
+
+def _food_form_values(session: Session, food: Food):
+    units = services.units_for(session, food)
+    extra = next((u for u in units if u.name != "serving"), None)
+    return {
+        "name": food.name, "brand": food.brand or "", "barcode": food.barcode or "",
+        "kcal_100g": food.kcal_100g, "protein_100g": food.protein_100g, "carbs_100g": food.carbs_100g,
+        "fat_100g": food.fat_100g, "fibre_100g": food.fibre_100g, "sugar_100g": food.sugar_100g,
+        "salt_100g": food.salt_100g, "serving_g": food.serving_g,
+        "unit_name": extra.name if extra else "", "unit_grams": extra.grams if extra else "",
+    }
+
+
+@app.get("/food/{food_id}/edit")
+def edit_food_page(request: Request, food_id: int, meal_id: str | None = None, d: str | None = None,
+                   user: User = CurrentUser, session: Session = DB):
+    food = session.get(Food, food_id)
+    if food is None or not services.can_edit(food, user):
+        raise HTTPException(403, "Only the person who created this food can edit it")
+    return render(request, "food_new.html", user, form=_food_form_values(session, food), error=None,
+                  meal_id=as_int(meal_id) or "", day=parse_day(d), editing=food, nav="add")
+
+
+@app.post("/food/{food_id}/edit")
+async def edit_food_submit(request: Request, food_id: int, user: User = CurrentUser, session: Session = DB):
+    food = session.get(Food, food_id)
+    if food is None or not services.can_edit(food, user):
+        raise HTTPException(403, "Only the person who created this food can edit it")
+    form = dict(await request.form())
+    meal_id = as_int(form.get("meal_id")) or ""
+    day = parse_day(form.get("d"))
+    try:
+        services.update_custom_food(session, user, food, form, update_my_logs=form.get("update_my_logs") == "1")
+    except ValueError as exc:
+        return render(request, "food_new.html", user, form=form, error=str(exc),
+                      meal_id=meal_id, day=day, editing=food, nav="add")
     return go(f"/food/{food.id}?meal_id={meal_id}&d={day.isoformat()}")
 
 
@@ -152,7 +197,8 @@ def food_page(request: Request, food_id: int, meal_id: str | None = None, d: str
     units = services.units_for(session, food)
     default_unit = next((u for u in units if u.name == "serving"), None)
     return render(request, "food.html", user, food=food, units=units, meals=meals, meal=meal,
-                  day=parse_day(d), default_unit=default_unit, per100=services.per_100g(food), nav="add")
+                  day=parse_day(d), default_unit=default_unit, per100=services.per_100g(food),
+                  can_edit=services.can_edit(food, user), nav="add")
 
 
 @app.post("/log")
@@ -203,7 +249,8 @@ def history_page(request: Request, user: User = CurrentUser, session: Session = 
 @app.get("/settings")
 def settings_page(request: Request, saved: int = 0, user: User = CurrentUser, session: Session = DB):
     goal = services.goal_on(session, user, services.today())
-    return render(request, "settings.html", user, goal=goal, saved=bool(saved), nav="settings")
+    return render(request, "settings.html", user, goal=goal, saved=bool(saved),
+                  is_admin=is_admin(user), nav="settings")
 
 
 @app.post("/settings")
@@ -226,6 +273,36 @@ async def settings_submit(request: Request, user: User = CurrentUser, session: S
         session.add(user)
         session.commit()
     return go("/settings?saved=1")
+
+
+def is_admin(user: User):
+    if settings.admin_emails:
+        return user.email in settings.admin_emails
+    return user.id == 1  # the first person to ever log in
+
+
+@app.get("/backup")
+def backup(user: User = CurrentUser):
+    """Download a consistent copy of the whole database. Admin only: it has everyone's data."""
+    if not is_admin(user):
+        raise HTTPException(403, "Only the admin can download backups")
+    stamp = datetime.now(settings.tz).strftime("%Y-%m-%d_%H%M")
+    target = Path(tempfile.gettempdir()) / f"myfatnesspal-{stamp}.db"
+    # SQLite's backup API copies safely even while the app is writing (a plain file copy might not).
+    source, dest = sqlite3.connect(settings.db_path), sqlite3.connect(target)
+    with dest:
+        source.backup(dest)
+    source.close()
+    dest.close()
+    return FileResponse(target, filename=target.name, media_type="application/x-sqlite3",
+                        background=BackgroundTask(target.unlink))
+
+
+@app.get("/sw.js")
+def service_worker():
+    # Served from the root (not /static/) so it's allowed to control every page.
+    return FileResponse(BASE / "static" / "sw.js", media_type="text/javascript",
+                        headers={"Cache-Control": "no-cache"})
 
 
 # ---------- JSON API (same services, different output) ----------

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Create a food · MyFatnessPal{% endblock %}
+{% block title %}{{ "Edit food" if editing else "Create a food" }} · MyFatnessPal{% endblock %}
 {% block content %}
 <div class="topbar" style="justify-content:flex-start">
-  <a class="icon-btn" href="/add?meal_id={{ meal_id }}&d={{ day.isoformat() }}" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
-  <h1>Create a food</h1>
+  <a class="icon-btn" href="{{ ('/food/%d' % editing.id) if editing else '/add' }}?meal_id={{ meal_id }}&d={{ day.isoformat() }}" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+  <h1>{{ "Edit food" if editing else "Create a food" }}</h1>
 </div>
 
-{% if form.barcode and not error %}<div class="alert">We couldn't find barcode {{ form.barcode }}. Add it from the packet and everyone can use it.</div>{% endif %}
+{% if form.barcode and not error and not editing %}<div class="alert">We couldn't find barcode {{ form.barcode }}. Add it from the packet and everyone can use it.</div>{% endif %}
 {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
 
-<form method="post" action="/food/new" style="display:flex;flex-direction:column;gap:16px">
+<form method="post" action="{{ ('/food/%d/edit' % editing.id) if editing else '/food/new' }}" style="display:flex;flex-direction:column;gap:16px">
   <input type="hidden" name="meal_id" value="{{ meal_id }}">
   <input type="hidden" name="d" value="{{ day.isoformat() }}">
   <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
@@ -40,6 +40,14 @@
     </div>
   </div>
 
-  <button class="btn" type="submit">Save food</button>
+  {% if editing %}
+  <label class="card pad" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+    <input type="checkbox" name="update_my_logs" value="1" style="width:22px;height:22px;margin-top:2px">
+    <span><strong>Also update my past logs of this food</strong><br>
+    <span class="small muted">Only changes your own diary. Friends who logged it keep the numbers they logged.
+    Leave unticked if you only want the change to apply from now on.</span></span>
+  </label>
+  {% endif %}
+  <button class="btn" type="submit">{{ "Save changes" if editing else "Save food" }}</button>
 </form>
 {% endblock %}

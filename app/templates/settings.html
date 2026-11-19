@@ -29,4 +29,18 @@
 
   <button class="btn" type="submit">Save</button>
 </form>
+
+{% if is_admin %}
+<section class="card pad" style="display:flex;flex-direction:column;gap:10px">
+  <div style="font-weight:700">Backup</div>
+  <p class="small muted" style="margin:0">Downloads the whole database (everyone's diaries). Keep it somewhere private.</p>
+  <a class="btn dark" href="/backup" download>Download backup</a>
+</section>
+{% endif %}
+
+<p class="small muted" style="margin:0 4px">
+  Product data from <a href="https://world.openfoodfacts.org">Open Food Facts</a> (Open Database Licence).
+  UK generic foods from McCance and Widdowson's Composition of Foods Integrated Dataset,
+  under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence</a>.
+</p>
 {% endblock %}
